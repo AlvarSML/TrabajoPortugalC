@@ -236,4 +236,3 @@ void resultadosPartido(FILE *f){
   printf("\t20.- PTP\n");
   printf("\t21.- PTP\n");
 }
-
