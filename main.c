@@ -10,7 +10,7 @@
 |Organización: Universidad de Burgos            |
 |Autor:   Alvar San Martin                      |
 |Fecha:   11/04/2020                            |
-|Versión: v1.0                                  |
+|Versión: v1.1                                  |
 +----------------------------------------------*/
 
 #include <stdio.h>
