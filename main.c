@@ -15,6 +15,7 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 #define SUPERIOR 4
 #define INFERIOR 0
@@ -24,6 +25,9 @@
 #define INFERIORPART 1
 
 #define MAXCHAR 20
+
+#define MAXPARTIDO 10
+#define NPARTIDOS 21
 
 /*
  * Prototipado de funciones
@@ -144,7 +148,7 @@ bool validarEntero(int num, int sup, int inf, int params, char intro) {
  */
 int limpiarBuffer() {
   // clean_stdin();
-  while (getchar() != '\n' || getchar != EOF)
+  while (getchar() != '\n' || getchar() != EOF)
     ;
   return 1;
 }
@@ -225,38 +229,47 @@ int contarCaracteres(FILE *f) {
  */
 void resultadosPartido(FILE *f) {
   int opt, params;
-  char buff[MAXCHAR];
+  int instante, blancos, subs, elegidos, votos, hondt, estimados, desc;
+  char territorio[20], partido[11];
+  float porcentaje, validos;
 
+  const char PARTIDOS[NPARTIDOS][MAXPARTIDO] = {
+      "PS",    "PPD/PSD",   "B.E.", "CDS-PP", "PCP-PEV", "PAN", "CH",
+      "R.I.R", "PCTP/MRPP", "A",    "L",      "IL",      "JPP", "NC",
+      "PDR",   "PNR",       "PURP", "PPM",    "MPT",     "PTP", "MAS"};
+  do {
   do {
     printf("Introduce un partido: \n");
-    printf("\t1.- PS\n");
-    printf("\t2.- PPD/PSD\n");
-    printf("\t3.- B.E.\n");
-    printf("\t4.- CDS-PP\n");
-    printf("\t5.- PCP-PEV\n");
-    printf("\t5.- PAN\n");
-    printf("\t7.- CH\n");
-    printf("\t8.- R.I.R\n");
-    printf("\t9.- PCTP/MRPP\n");
-    printf("\t10.- A\n");
-    printf("\t11.- L\n");
-    printf("\t12.- IL\n");
-    printf("\t13.- JPP\n");
-    printf("\t14.- NC\n");
-    printf("\t15.- PDR\n");
-    printf("\t16.- PNR\n");
-    printf("\t17.- PURP\n");
-    printf("\t18.- PPM\n");
-    printf("\t19.- MPT\n");
-    printf("\t20.- PTP\n");
-    printf("\t21.- PTP\n");
+
+    for (int i = 0; i < NPARTIDOS; i++) {
+      printf("%i.- %s\n", (i + 1), PARTIDOS[i]);
+    }
+    printf("0.- Salir");
 
     printf("> ");
     params = scanf("%i", &opt);
 
-  } while (!validarEntero(opt, SUPERIORPART, INFERIORPART, params, getchar()));
+  } while (!validarEntero(opt, SUPERIORPART, INFERIORPART, params, getchar()) && opt != 0);
+
+  printf(
+      "Instante\tTerritorio\t\tBlancos\tSubscritos\tElegidos\tPorcentaje\tValid"
+      "os\t\t"
+      "Voto"
+      "s\tD'Hont\tEstimados\n");
 
   rewind(f);
-  fscanf(f, "%20[^,]", buff);
-  printf("%s", f);
+
+  while (fscanf(f, "%i,%20[^,],%i,%i,%i,%11[^,],%i,%f,%f,%i,%i,%i", &instante,
+                territorio, &blancos, &subs, &elegidos, partido, &desc,
+                &porcentaje, &validos, &votos, &hondt, &estimados) != EOF) {
+    if (strcmp(partido, PARTIDOS[opt - 1]) == 0) {
+      printf("%i\t\t%s\t%i\t%i\t\t%i\t\t%f\t%f\t%i\t%i\t%i\n", instante,
+             territorio, blancos, subs, elegidos, porcentaje, validos, votos,
+             hondt, estimados);
+    }
+  }
+
+  } while (opt != 0);
+  
+  
 }
