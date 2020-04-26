@@ -448,7 +448,7 @@ int insertarFilas(FILE *f) {
     } while (!validarEntero(objetivo, SUPERIORPORCIENTO, INFERIOR, params,
                             getchar()));
 
-    fprintf(f,"%s,%i,%i,%i,%s,%i,%f,%f,%i,%i,%i\n", instante,
+    fprintf(f,"%s,%d,%d,%d,%s,%d,%d,%d,%d,%d,%d\n", instante,
             REGIONES[territorio], blancos, nulos, subs, PARTIDOS[partido],
             elegidos, validos, votos, total, hondt, objetivo);
 
