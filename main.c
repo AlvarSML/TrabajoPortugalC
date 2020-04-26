@@ -32,12 +32,44 @@
 #define MAXPARTIDO 10
 #define NPARTIDOS 21
 
+#define NREGIONES 20
+#define MAXREGION 19
+
 #define LETRASTERRITORIO 20
 #define LETRASPARTIDO 11
 
 #define ARCHIVO "Elecciones.csv"
 
-/*
+/**
+ * Globales
+ */
+const char PARTIDOS[NPARTIDOS][MAXPARTIDO] = {
+    "PS",    "PPD/PSD",   "B.E.", "CDS-PP", "PCP-PEV", "PAN", "CH",
+    "R.I.R", "PCTP/MRPP", "A",    "L",      "IL",      "JPP", "NC",
+    "PDR",   "PNR",       "PURP", "PPM",    "MPT",     "PTP", "MAS"};
+
+const char REGIONES[NREGIONES][MAXREGION] = {"Territorio Nacional",
+                                             "Aveiro",
+                                             "Beja",
+                                             "Braga",
+                                             "Bragansa",
+                                             "Castelo Branco",
+                                             "Coimbra",
+                                             "Avora",
+                                             "Faro",
+                                             "Guarda",
+                                             "Leiria",
+                                             "Lisboa",
+                                             "Madeira",
+                                             "Portalegre",
+                                             "Porto",
+                                             "Santarom",
+                                             "Setabal",
+                                             "Viana do Castelo",
+                                             "Vila Real",
+                                             "Viseu"};
+
+/**
  * Prototipado de funciones
  */
 
@@ -53,6 +85,12 @@ bool validarEntero(int, int, int, int, char);
 int contarFilas(FILE *);
 int limpiarBuffer();
 
+void mostrarPartidos();
+void mostrarRegiones();
+
+/***************************
+ *      MAIN               *
+ * ************************/
 int main(void) {
   int opt;
 
@@ -67,7 +105,6 @@ int main(void) {
   return 0;
 }
 
-// asda
 /*
  * Muestra el menu y solicita una opcion
  * @return opcion seleccionada
@@ -216,7 +253,7 @@ int filaMasLarga(FILE *f) {
   return masLarga;
 }
 
-/*
+/**
  * Cuenta el numer de filas de un archivo (solo si hay mas de 1)
  * @param archivo a leer
  * @return numero de filas
@@ -234,7 +271,7 @@ int contarFilas(FILE *f) {
   return nFilas;
 }
 
-/*
+/**
  * Cuenta el numero de caracteres de un archivo
  * @param archivo a leer
  * @return numero de caracteres
@@ -252,7 +289,25 @@ int contarCaracteres(FILE *f) {
   return nCaracteres;
 }
 
-/*
+/**
+ * Muestra por pantalla los partidos con su numero
+ */
+void mostrarPartidos() {
+  for (int i = 0; i < NPARTIDOS; i++) {
+    printf("%i.- %s\n", (i + 1), PARTIDOS[i]);
+  }
+}
+
+/**
+ * Muestra por pantalla las regiones con su numero
+ */
+void mostrarRegiones() {
+  for (int i = 0; i < NREGIONES; i++) {
+    printf("%i.- %s\n", (i + 1), REGIONES[i]);
+  }
+}
+
+/**
  * Muestra los resultados de un partido por region
  * @param archivo a leer
  */
@@ -262,19 +317,11 @@ void resultadosPartido(FILE *f) {
   char territorio[20], partido[11];
   float porcentaje, validos;
 
-  const char PARTIDOS[NPARTIDOS][MAXPARTIDO] = {
-      "PS",    "PPD/PSD",   "B.E.", "CDS-PP", "PCP-PEV", "PAN", "CH",
-      "R.I.R", "PCTP/MRPP", "A",    "L",      "IL",      "JPP", "NC",
-      "PDR",   "PNR",       "PURP", "PPM",    "MPT",     "PTP", "MAS"};
   do {
     do {
       printf("Introduce un partido: \n");
-
-      for (int i = 0; i < NPARTIDOS; i++) {
-        printf("%i.- %s\n", (i + 1), PARTIDOS[i]);
-      }
+      mostrarPartidos();
       printf("0.- Salir\n");
-
       printf("> ");
       params = scanf("%i", &opt);
 
@@ -310,15 +357,15 @@ void resultadosPartido(FILE *f) {
   } while (opt != 0);
 }
 
-/*
+/**
  * Inserta filas en el archivo para el instante elegifo
- * @param
- * @return
+ * @param f archivo en el que escrbir (necestita peromisos r y w)
+ * @return numero de filas escritas
  */
 int insertarFilas(FILE *f) {
-  int filas, params, blancos, nulos, subs, instante, total, hondt, objetivo, selecPartido, selecTerri;
+  int filas, params, blancos, nulos, subs, instante, total, hondt, objetivo,
+      selecPartido, selecTerri, territorio, partido;
   char opt;
-  char territorio[LETRASTERRITORIO], partido[LETRASTERRITORIO];
   float elegidos, validos, votos;
 
   int incFilas = 0;
@@ -328,11 +375,19 @@ int insertarFilas(FILE *f) {
     printf("-Se han cargado %i filas-\n", filas);
 
     printf("Introduce los siguientes datos: \n");
-    printf("Instante de voto (0-3)[0]: ");
-    params = scanf("%i", &instante);
 
-    printf("Territorio:");
-    // leer territorios
+    do {
+      printf("Instante de voto (0-3)[0]: ");
+      params = scanf("%i", &instante);
+    } while (!validarEntero(instante, 3, INFERIOR, params, getchar()));
+
+    do {
+      printf("Territorio:\n");
+      mostrarRegiones();
+      printf("(1-21)[1] > ");
+      params = scanf("%i", &territorio);
+    } while (!validarEntero(blancos, NREGIONES+1, INFERIOR, params, getchar()));
+
     do {
       printf("Votos BLANCOS (0-10000): ");
       params = scanf("%i", &blancos);
@@ -348,22 +403,32 @@ int insertarFilas(FILE *f) {
       params = scanf("%i", &subs);
     } while (!validarEntero(subs, SUPERIORINT, INFERIOR, params, getchar()));
 
-    printf("Partido: ");
+    do {
+      printf("Partido: \n");
+      mostrarPartidos();
+      printf("(1-21)[1] > ");
+      params = scanf("%i",&partido);
+    } while (!validarEntero(partido, NPARTIDOS+1, INFERIOR, params, getchar()));
+
     // leer partidos
     do {
       printf("Elegidos (porcentaje con decimales) (0-100): ");
       params = scanf("%f", &elegidos);
-    } while (!validarDecimal(subs, SUPERIORPORCIENTO, INFERIOR, params, getchar()));
+    } while (
+        !validarDecimal(subs, SUPERIORPORCIENTO, INFERIOR, params, getchar()));
 
     do {
       printf("Porcenataje de votos (0-100): ");
       params = scanf("%f", &votos);
-    } while (!validarDecimal(votos, SUPERIORPORCIENTO, INFERIOR, params, getchar()));
+    } while (
+        !validarDecimal(votos, SUPERIORPORCIENTO, INFERIOR, params, getchar()));
 
     do {
-      printf("Porcentaje de votos validos (porcentaje con decimales) (0-100): ");
+      printf(
+          "Porcentaje de votos validos (porcentaje con decimales) (0-100): ");
       params = scanf("%f", &validos);
-    } while (!validarDecimal(validos, SUPERIORPORCIENTO, INFERIOR, params, getchar()));
+    } while (!validarDecimal(validos, SUPERIORPORCIENTO, INFERIOR, params,
+                             getchar()));
 
     do {
       printf("Total de votos validos (0-10000): ");
@@ -373,16 +438,18 @@ int insertarFilas(FILE *f) {
     do {
       printf("Elegidos (Hondt) (0-100): ");
       params = scanf("%i", &hondt);
-    } while (!validarEntero(hondt, SUPERIORPORCIENTO, INFERIOR, params, getchar()));
+    } while (
+        !validarEntero(hondt, SUPERIORPORCIENTO, INFERIOR, params, getchar()));
 
     do {
       printf("Objetivo de elegidos (0-100): ");
       params = scanf("%i", &objetivo);
-    } while (!validarEntero(objetivo, SUPERIORPORCIENTO, INFERIOR, params, getchar()));
+    } while (!validarEntero(objetivo, SUPERIORPORCIENTO, INFERIOR, params,
+                            getchar()));
 
-        fprintf("%i,%20[^,],%i,%i,%i,%11[^,],%i,%f,%f,%i,%i,%i", instante,
-                territorio[selecTerri], blancos, nulos, subs, partido[selecPartico], elegidos, validos,
-                votos, total, hondt, objetivo);
+    fprintf("%i,%20[^,],%i,%i,%i,%11[^,],%i,%f,%f,%i,%i,%i", instante,
+            REGIONES[territorio], blancos, nulos, subs, PARTIDOS[partido],
+            elegidos, validos, votos, total, hondt, objetivo);
 
     printf("¿Introducir otra fila? (s/n)[N]: ");
     params = scanf("%c", &opt);
