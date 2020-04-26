@@ -166,7 +166,7 @@ void seleccionarOpcion(int opcion) {
       fclose(f);
       break;
     case 4:
-      f = fopen(ARCHIVO, "rw");
+      f = fopen(ARCHIVO, "a+");
       insertarFilas(f);
       fclose(f);
       break;
@@ -363,12 +363,11 @@ void resultadosPartido(FILE *f) {
  * @return numero de filas escritas
  */
 int insertarFilas(FILE *f) {
-  int filas, params, blancos, nulos, subs, instante, total, hondt, objetivo,
-      selecPartido, selecTerri, territorio, partido;
+  int filas = 1, params, blancos, nulos, subs, instante = 0, total, hondt, objetivo,
+                                           selecPartido, selecTerri, territorio,
+                                           partido;
   char opt;
   float elegidos, validos, votos;
-
-  int incFilas = 0;
 
   do {
     filas = contarFilas(f);
@@ -377,7 +376,7 @@ int insertarFilas(FILE *f) {
     printf("Introduce los siguientes datos: \n");
 
     do {
-      printf("Instante de voto (0-3)[0]: ");
+      printf("Instante de voto (0-3): ");
       params = scanf("%i", &instante);
     } while (!validarEntero(instante, 3, INFERIOR, params, getchar()));
 
@@ -386,7 +385,8 @@ int insertarFilas(FILE *f) {
       mostrarRegiones();
       printf("(1-21)[1] > ");
       params = scanf("%i", &territorio);
-    } while (!validarEntero(blancos, NREGIONES+1, INFERIOR, params, getchar()));
+    } while (
+        !validarEntero(territorio, NREGIONES + 1, INFERIOR, params, getchar()));
 
     do {
       printf("Votos BLANCOS (0-10000): ");
@@ -406,16 +406,17 @@ int insertarFilas(FILE *f) {
     do {
       printf("Partido: \n");
       mostrarPartidos();
-      printf("(1-21)[1] > ");
-      params = scanf("%i",&partido);
-    } while (!validarEntero(partido, NPARTIDOS+1, INFERIOR, params, getchar()));
+      printf("(1-22)[1] > ");
+      params = scanf("%i", &partido);
+    } while (
+        !validarEntero(partido, NPARTIDOS + 1, INFERIOR, params, getchar()));
 
-    // leer partidos
+
     do {
       printf("Elegidos (porcentaje con decimales) (0-100): ");
       params = scanf("%f", &elegidos);
-    } while (
-        !validarDecimal(subs, SUPERIORPORCIENTO, INFERIOR, params, getchar()));
+    } while (!validarDecimal(elegidos, SUPERIORPORCIENTO, INFERIOR, params,
+                             getchar()));
 
     do {
       printf("Porcenataje de votos (0-100): ");
@@ -447,7 +448,7 @@ int insertarFilas(FILE *f) {
     } while (!validarEntero(objetivo, SUPERIORPORCIENTO, INFERIOR, params,
                             getchar()));
 
-    fprintf("%i,%20[^,],%i,%i,%i,%11[^,],%i,%f,%f,%i,%i,%i", instante,
+    fprintf(f,"%s,%i,%i,%i,%s,%i,%f,%f,%i,%i,%i\n", instante,
             REGIONES[territorio], blancos, nulos, subs, PARTIDOS[partido],
             elegidos, validos, votos, total, hondt, objetivo);
 
@@ -458,6 +459,6 @@ int insertarFilas(FILE *f) {
 
   } while (opt == 's' || opt == 'S');
 
-  printf("Se han añadido %i filas\n", incFilas);
-  return incFilas;
+  printf("Se han añadido %i filas\n", filas);
+  return filas;
 }
