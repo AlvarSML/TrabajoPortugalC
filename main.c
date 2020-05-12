@@ -548,11 +548,12 @@ void calcularResultados(struct Elec filas[], int nfilas) {}
  * @param archivo archivo abierto a cargar
  */
 int cargarRegistros(struct Elec filas[], FILE *f) {
-  rewind(f); //Para asegurarse que empezamos por el principip
+  //rewind(f); //Para asegurarse que empezamos por el principip
   int i = 0;
 
   while (!feof(f)) {
     i++;
+    printf("%i\n",i);
     fscanf(f, "%i,%20[^,],%i,%i,%i,%11[^,],%i,%f,%f,%i,%i,%i",
            &filas[i].instante, filas[i].territorio, &filas[i].blancos,
            &filas[i].nulos, &filas[i].subs, filas[i].partido, &filas[i].elegidos,
@@ -561,6 +562,6 @@ int cargarRegistros(struct Elec filas[], FILE *f) {
   }
 
   printf("->Se han cargado %i filas en el vector de registros\n", i);
-
+  printf("%i",filas[4].blancos);
   return i;
 }
