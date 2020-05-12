@@ -10,14 +10,16 @@
 |Organización: Universidad de Burgos            |
 |Autor:   Alvar San Martin                      |
 |Fecha:   11/04/2020                            |
-|Versión: v1.1                                  |
+|Versión: v0.7                                  |
+|Repositorio:                                   |
+|  https://github.com/alvarsnow/TrabajoPortugalC|
 +----------------------------------------------*/
 
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
-#define SUPERIOR 4
+#define SUPERIOR 6
 #define INFERIOR 0
 #define INTRO 10
 
@@ -70,6 +72,24 @@ const char REGIONES[NREGIONES][MAXREGION] = {"Territorio Nacional",
                                              "Viseu"};
 
 /**
+ *  Structs
+ */
+struct Elec {
+  int instante;                       // 1
+  char territorio[LETRASTERRITORIO];  // 2
+  int blancos;                        // 3
+  int nulos;                          // 4          
+  int subs;                           // 5
+  char partido[LETRASPARTIDO];        // 6
+  int elegidos;                       // 7
+  float porcentaje;                   // 8    
+  float validos;                      // 9
+  float porcientoVotos;               // 10
+  int hondt;                          // 11
+  int totalElegidos;                  // 12
+};
+
+/**
  * Prototipado de funciones
  */
 
@@ -88,6 +108,36 @@ int limpiarBuffer();
 void mostrarPartidos();
 void mostrarRegiones();
 
+// Semanas 4 y 5
+int eliminarFilas(struct Elec[], int);
+void calcularResultados(struct Elec[], int);
+
+// Complementarias
+
+// Carga un fichero de texto (entradao sin  filas repetidas)en el vector de
+// registros
+int cargarRegistros(struct Elec[], FILE *);
+// marca con  -1 las  filas   del  vectorde registrosrepetidas
+void escribeFicheroLimpio(struct Elec, FILE *);
+/*escribe una  sola   ficla   no repetidaen depurado.csv*/
+void escribeFicheroLimpio(struct Elec, FILE *);
+/*escribe una  sola fila de resultados en el fichero binario*/
+void escribirBinario(struct Elec, FILE *);
+/*comparados   registros del  vector de  registros
+                                 y devuelve cierto si son iguales*/
+bool compararRegistros(struct Elec, struct Elec);
+/*ecribeuna  sola   fila en un ficherode texto*/
+void escribeFicheroLimpio(struct Elec, FILE *);
+/*muestaun menúcon  todoslos territoriosparaelegir(1- 22)
+                          el que  queremos*/
+
+//#void inicializarVectorResultados(GANADOR[]); /*elvector de registros en  el
+// que   guardaremos los resultados por territoriolo incializamos*/ #void
+// resumenGanador(struct Elec[], GANADOR[], int); /*almacenamos en  el  vector
+// de registros ganador los resultados por cada territorio*/ #void
+// imprimirGanador(GANADOR[]); /* imprimimospor pantallalos datosdel ganadorde
+// cadaterritorio * /
+
 /***************************
  *      MAIN               *
  * ************************/
@@ -105,7 +155,7 @@ int main(void) {
   return 0;
 }
 
-/*
+/**
  * Muestra el menu y solicita una opcion
  * @return opcion seleccionada
  */
@@ -122,6 +172,8 @@ int solicitarOpcionMenu() {
     printf("\t2.- Fila mas larga\n");
     printf("\t3.- Resultados de un partido por regiones\n");
     printf("\t4.- Inserccion simple\n");
+    printf("\t5.- Depuracion del fichero\n");
+    printf("\t6.- Resumen de resultados\n");
     printf("\t0.- Salir\n\n");
     printf("Introduzca una opcion > ");
 
@@ -140,7 +192,7 @@ int solicitarOpcionMenu() {
   return -1;
 }
 
-/*
+/**
  * Llama a las funciones que ejecutan cada una de las opciones
  * del menú mediante un switch. Abrir y cerrar el fichero desde aquí y
  * pasarlo ya abierto
@@ -148,6 +200,12 @@ int solicitarOpcionMenu() {
  */
 void seleccionarOpcion(int opcion) {
   FILE *f;
+
+  f = fopen(ARCHIVO, "r");
+  int filas = contarFilas(f);
+  struct Elec vector[filas];
+  fclose(f);
+
   switch (opcion) {
     case 2:
       f = fopen(ARCHIVO, "r");
@@ -170,13 +228,20 @@ void seleccionarOpcion(int opcion) {
       insertarFilas(f);
       fclose(f);
       break;
+    case 5:
+      f = fopen(ARCHIVO, "r");
+      cargarRegistros(vector, f);
+      fclose(f);
+      break;
+    case 6:
+      break;
     case 0:
       break;
       // default:
   }
 }
 
-/*
+/**
  * Valida un numero del menu
  * @param numero leido
  * @param limite superior
@@ -193,7 +258,7 @@ bool validarEntero(int num, int sup, int inf, int params, char intro) {
   }
 }
 
-/*
+/**
  * Valida un numero decimal (float), para evitar el redondeo de float a int
  * @param numero leido
  * @param limite superior
@@ -210,21 +275,21 @@ bool validarDecimal(float num, int sup, int inf, int params, char intro) {
   }
 }
 
-/*
+/**
  * Limpiarbuffer
  * @return
  */
 int limpiarBuffer() {
   // clean_stdin();
-  while (getchar() != '\n');
+  while (getchar() != '\n')
+    ;
   return 1;
 }
 
-/*
+/**
  * Busca la fila mas larga, muestra el numero de caracteres y las filas totales
  * @param archivo a leer
  * @return numero de la fila mas larga
- *
  */
 int filaMasLarga(FILE *f) {
   int masLarga = 1;
@@ -364,9 +429,8 @@ void resultadosPartido(FILE *f) {
  * @return numero de filas escritas
  */
 int insertarFilas(FILE *f) {
-  int filas = 1, params, blancos, nulos, subs, instante = 0, total, hondt, objetivo,
-                                           selecPartido, selecTerri, territorio,
-                                           partido;
+  int filas = 1, params, blancos, nulos, subs, instante = 0, total, hondt,
+      objetivo, selecPartido, selecTerri, territorio, partido;
   char opt;
   float elegidos, validos, votos;
 
@@ -412,7 +476,6 @@ int insertarFilas(FILE *f) {
     } while (
         !validarEntero(partido, NPARTIDOS + 1, INFERIOR, params, getchar()));
 
-
     do {
       printf("Elegidos (porcentaje con decimales) (0-100): ");
       params = scanf("%f", &elegidos);
@@ -449,7 +512,7 @@ int insertarFilas(FILE *f) {
     } while (!validarEntero(objetivo, SUPERIORPORCIENTO, INFERIOR, params,
                             getchar()));
 
-    fprintf(f,"%d,%s,%d,%d,%d,%s,%f,%f,%f,%d,%d,%d\n", instante,
+    fprintf(f, "%d,%s,%d,%d,%d,%s,%f,%f,%f,%d,%d,%d\n", instante,
             REGIONES[territorio], blancos, nulos, subs, PARTIDOS[partido],
             elegidos, validos, votos, total, hondt, objetivo);
 
@@ -462,4 +525,42 @@ int insertarFilas(FILE *f) {
 
   printf("Se han añadido %i filas\n", filas);
   return filas;
+}
+
+/**
+ * Crea un fichero de salida con las filas que no esten repetidas
+ * @param Elec array de las filas del csv
+ * @param int numero de filas
+ * @return
+ */
+int eliminarFilas(struct Elec filas[], int nFilas) {}
+
+/**
+ * Calcula los resultados y los buelca en un ficero binario
+ * @param Elec array de filas
+ * @param numero de filas
+ */
+void calcularResultados(struct Elec filas[], int nfilas) {}
+
+/** Carga un fichero de texto (entradao sin  filas repetidas)en el vector de
+ * registros
+ * @param filas vector de registros
+ * @param archivo archivo abierto a cargar
+ */
+int cargarRegistros(struct Elec filas[], FILE *f) {
+  rewind(f); //Para asegurarse que empezamos por el principip
+  int i = 0;
+
+  while (!feof(f)) {
+    i++;
+    fscanf(f, "%i,%20[^,],%i,%i,%i,%11[^,],%i,%f,%f,%i,%i,%i",
+           &filas[i].instante, filas[i].territorio, &filas[i].blancos,
+           &filas[i].nulos, &filas[i].subs, filas[i].partido, &filas[i].elegidos,
+           &filas[i].porcentaje, &filas[i].validos, &filas[i].porcientoVotos,
+           &filas[i].hondt, &filas[i].totalElegidos);
+  }
+
+  printf("->Se han cargado %i filas en el vector de registros\n", i);
+
+  return i;
 }
