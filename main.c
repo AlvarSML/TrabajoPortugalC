@@ -41,6 +41,8 @@
 #define LETRASPARTIDO 11
 
 #define ARCHIVO "Elecciones.csv"
+#define DEPURADO "Depurado.csv"
+#define PRUEBA "Prueba.csv"
 
 /**
  * Globales
@@ -78,17 +80,24 @@ struct Elec {
   int instante;                       // 1
   char territorio[LETRASTERRITORIO];  // 2
   int blancos;                        // 3
-  int nulos;                          // 4          
+  int nulos;                          // 4
   int subs;                           // 5
   char partido[LETRASPARTIDO];        // 6
   int elegidos;                       // 7
-  float porcentaje;                   // 8    
+  float porcentaje;                   // 8
   float validos;                      // 9
   float porcientoVotos;               // 10
   int hondt;                          // 11
   int totalElegidos;                  // 12
 };
 
+struct Ganador {
+  char territorio[LETRASTERRITORIO];
+  char partido[LETRASPARTIDO];
+  char masHaSubido[LETRASPARTIDO];
+  char masHaBajado[LETRASPARTIDO];
+  int totalElegidos;
+};
 /**
  * Prototipado de funciones
  */
@@ -111,14 +120,12 @@ void mostrarRegiones();
 // Semanas 4 y 5
 int eliminarFilas(struct Elec[], int);
 void calcularResultados(struct Elec[], int);
-
+void escribeFicheroDepurado(struct Elec[], int, FILE *);
 // Complementarias
 
 // Carga un fichero de texto (entradao sin  filas repetidas)en el vector de
 // registros
 int cargarRegistros(struct Elec[], FILE *);
-// marca con  -1 las  filas   del  vectorde registrosrepetidas
-void escribeFicheroLimpio(struct Elec, FILE *);
 /*escribe una  sola   ficla   no repetidaen depurado.csv*/
 void escribeFicheroLimpio(struct Elec, FILE *);
 /*escribe una  sola fila de resultados en el fichero binario*/
@@ -126,12 +133,10 @@ void escribirBinario(struct Elec, FILE *);
 /*comparados   registros del  vector de  registros
                                  y devuelve cierto si son iguales*/
 bool compararRegistros(struct Elec, struct Elec);
-/*ecribeuna  sola   fila en un ficherode texto*/
-void escribeFicheroLimpio(struct Elec, FILE *);
-/*muestaun menúcon  todoslos territoriosparaelegir(1- 22)
-                          el que  queremos*/
 
-//#void inicializarVectorResultados(GANADOR[]); /*elvector de registros en  el
+//Calcula los resultados y los introduce en un archivo binario
+void calcularResultado(struct Elec[], int);
+// void inicializarVectorResultados(GANADOR[]); /*elvector de registros en  el
 // que   guardaremos los resultados por territoriolo incializamos*/ #void
 // resumenGanador(struct Elec[], GANADOR[], int); /*almacenamos en  el  vector
 // de registros ganador los resultados por cada territorio*/ #void
@@ -184,7 +189,6 @@ int solicitarOpcionMenu() {
     if (!validarEntero(opt, SUPERIOR, INFERIOR, params, getchar())) {
       printf("! Valor incorrecto, introduce un valor entre %i y %i\n", INFERIOR,
              SUPERIOR);
-
     } else
       return opt;
   }
@@ -199,7 +203,7 @@ int solicitarOpcionMenu() {
  * @param opcion del menu
  */
 void seleccionarOpcion(int opcion) {
-  FILE *f;
+  FILE *f, *depurado;
 
   f = fopen(ARCHIVO, "r");
   int filas = contarFilas(f);
@@ -230,10 +234,20 @@ void seleccionarOpcion(int opcion) {
       break;
     case 5:
       f = fopen(ARCHIVO, "r");
-      cargarRegistros(vector, f);
+      depurado = fopen(DEPURADO, "w");
+      int size = cargarRegistros(vector, f);
+      int nSize = eliminarFilas(vector, size);
+      escribeFicheroDepurado(vector, nSize, depurado);
       fclose(f);
+      fclose(depurado);
       break;
     case 6:
+      f = fopen(DEPURADO,"r");
+      if (f == NULL){
+        f = fopen(ARCHIVO, "r");
+      }
+
+      fclose(f);
       break;
     case 0:
       break;
@@ -533,7 +547,26 @@ int insertarFilas(FILE *f) {
  * @param int numero de filas
  * @return
  */
-int eliminarFilas(struct Elec filas[], int nFilas) {}
+int eliminarFilas(struct Elec filas[], int nFilas) {
+  int size = nFilas;  // tamaño del array final
+  printf("Tamaño inicial: %i",size);
+  for (int i = 0; i < (size - 1); i++) {
+
+    for (int j = (i + 1); j < size; j++) {
+
+      if (compararRegistros(filas[i], filas[j])) {
+        for (int l = j; l < size - 1; l++) {
+          filas[l] = filas[l + 1];
+        }
+        
+        size--;
+      }
+    }
+  }
+  printf("Se han eliminado %i filas",(nFilas - size));
+  printf("El nuevo tamaño de registros es %i\n",size);
+  return size;
+}
 
 /**
  * Calcula los resultados y los buelca en un ficero binario
@@ -548,20 +581,77 @@ void calcularResultados(struct Elec filas[], int nfilas) {}
  * @param archivo archivo abierto a cargar
  */
 int cargarRegistros(struct Elec filas[], FILE *f) {
-  //rewind(f); //Para asegurarse que empezamos por el principip
+  rewind(f);  // Para asegurarse que empezamos por el principip
   int i = 0;
 
-  while (!feof(f)) {
+  while (fscanf(f, "%i,%20[^,],%i,%i,%i,%11[^,],%i,%f,%f,%f,%i,%i",
+                &filas[i].instante, filas[i].territorio, &filas[i].blancos,
+                &filas[i].nulos, &filas[i].subs, filas[i].partido,
+                &filas[i].elegidos, &filas[i].porcentaje, &filas[i].validos,
+                &filas[i].porcientoVotos, &filas[i].hondt,
+                &filas[i].totalElegidos) != EOF) {
     i++;
-    printf("%i\n",i);
-    fscanf(f, "%i,%20[^,],%i,%i,%i,%11[^,],%i,%f,%f,%i,%i,%i",
-           &filas[i].instante, filas[i].territorio, &filas[i].blancos,
-           &filas[i].nulos, &filas[i].subs, filas[i].partido, &filas[i].elegidos,
-           &filas[i].porcentaje, &filas[i].validos, &filas[i].porcientoVotos,
-           &filas[i].hondt, &filas[i].totalElegidos);
-  }
+  };
 
   printf("->Se han cargado %i filas en el vector de registros\n", i);
-  printf("%i",filas[4].blancos);
+  /** COMPROBACION:
+  for (int j = 0; j < i; j++) {
+    printf("%i,%s,%i,%i,%i,%s,%i,%f,%f,%f,%i,%i\n", filas[j].instante,
+           filas[j].territorio, filas[j].blancos, filas[j].nulos, filas[j].subs,
+           filas[j].partido, filas[j].elegidos, filas[j].porcentaje,
+           filas[j].validos, filas[j].porcientoVotos, filas[j].hondt,
+           filas[j].totalElegidos);
+  }
+  */
   return i;
+}
+
+/**
+ * Compara 2 registros, si son iguales devuelve true
+ * @param f1 fila 1
+ * @param f2 fila 2
+ * @return true = iguales | flase = distintas
+ */
+bool compararRegistros(struct Elec f1, struct Elec f2) {
+  return (f1.blancos == f1.blancos && f1.elegidos == f2.elegidos &&
+          f1.hondt == f2.hondt && f1.instante == f2.instante &&
+          f1.nulos == f2.nulos && strcmp(f1.partido, f2.partido) == 0 &&  //
+          f1.porcentaje == f2.porcentaje &&
+          f1.porcientoVotos == f1.porcientoVotos && f1.subs == f2.subs &&
+          strcmp(f1.territorio, f2.territorio) == 0 &&
+          f1.totalElegidos == f2.totalElegidos && f1.validos == f2.validos);
+}
+
+/**
+ * Escribe una linea el el fichero depurado
+ * @param fila a itroducir
+ * @param f fichero a modificar
+ */
+void escribeFicheroLimpio(struct Elec fila, FILE *f) {
+  fprintf(f, "%i,%s,%i,%i,%i,%s,%i,%f,%f,%f,%i,%i\n", fila.instante,
+          fila.territorio, fila.blancos, fila.nulos, fila.subs, fila.partido,
+          fila.elegidos, fila.porcentaje, fila.validos, fila.porcientoVotos,
+          fila.hondt, fila.totalElegidos);
+}
+
+/**
+ * Escribe todas las filas distintas en un fichero nuevo
+ * @param filas
+ * @param f fichero csv limpio
+ */
+void escribeFicheroDepurado(struct Elec filas[], int size, FILE *f) {
+  for (int i = 0; i < size; i++) {
+    escribeFicheroLimpio(filas[i], f);
+  }
+}
+
+/**
+ * Calcula los resultados de las elecciones y los introduce en un archivo
+ * @param filas a leer
+ * @param lienas totales
+ */
+void calcularResultado(struct Elec filas[], int lineas){
+  for(int i = 0; i < lineas; i++) {
+    
+  }
 }
