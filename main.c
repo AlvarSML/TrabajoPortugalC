@@ -35,7 +35,7 @@
 #define NPARTIDOS 21
 
 #define NREGIONES 20
-#define MAXREGION 19
+#define MAXREGION 20
 
 #define LETRASTERRITORIO 20
 #define LETRASPARTIDO 11
@@ -92,12 +92,17 @@ struct Elec {
 };
 
 struct Ganador {
-  char territorio[LETRASTERRITORIO];
-  char partido[LETRASPARTIDO];
-  char masHaSubido[LETRASPARTIDO];
-  char masHaBajado[LETRASPARTIDO];
+  int territorio;
+  int partido;
+  int masHaSubido;
+  int votosSubidos;
+  int masHaBajado;
+  int votosBajados;
   int totalElegidos;
+  int votos;
 };
+
+typedef struct Ganador Ganador;
 /**
  * Prototipado de funciones
  */
@@ -134,13 +139,12 @@ void escribirBinario(struct Elec, FILE *);
                                  y devuelve cierto si son iguales*/
 bool compararRegistros(struct Elec, struct Elec);
 
-//Calcula los resultados y los introduce en un archivo binario
+// Calcula los resultados y los introduce en un archivo binario
 void calcularResultado(struct Elec[], int);
-// void inicializarVectorResultados(GANADOR[]); /*elvector de registros en  el
-// que   guardaremos los resultados por territoriolo incializamos*/ #void
-// resumenGanador(struct Elec[], GANADOR[], int); /*almacenamos en  el  vector
-// de registros ganador los resultados por cada territorio*/ #void
-// imprimirGanador(GANADOR[]); /* imprimimospor pantallalos datosdel ganadorde
+
+// Funcion complementaria para ver matrizes por pantalla
+void mostrarMatriz(int matriz[NREGIONES][NPARTIDOS]);
+
 // cadaterritorio * /
 
 /***************************
@@ -205,6 +209,8 @@ int solicitarOpcionMenu() {
 void seleccionarOpcion(int opcion) {
   FILE *f, *depurado;
 
+  int size;
+
   f = fopen(ARCHIVO, "r");
   int filas = contarFilas(f);
   struct Elec vector[filas];
@@ -235,18 +241,25 @@ void seleccionarOpcion(int opcion) {
     case 5:
       f = fopen(ARCHIVO, "r");
       depurado = fopen(DEPURADO, "w");
-      int size = cargarRegistros(vector, f);
+
+      size = cargarRegistros(vector, f);
       int nSize = eliminarFilas(vector, size);
       escribeFicheroDepurado(vector, nSize, depurado);
+
       fclose(f);
       fclose(depurado);
       break;
     case 6:
-      f = fopen(DEPURADO,"r");
-      if (f == NULL){
+      f = fopen(DEPURADO, "r");
+      if (f == NULL) {
         f = fopen(ARCHIVO, "r");
+        size = cargarRegistros(vector, f);
+        size = eliminarFilas(vector,size);
+      } else {
+        size = cargarRegistros(vector, f);
       }
-
+      
+      calcularResultado(vector, size);
       fclose(f);
       break;
     case 0:
@@ -549,31 +562,22 @@ int insertarFilas(FILE *f) {
  */
 int eliminarFilas(struct Elec filas[], int nFilas) {
   int size = nFilas;  // tamaño del array final
-  printf("Tamaño inicial: %i",size);
+  printf("Tamaño inicial: %i", size);
   for (int i = 0; i < (size - 1); i++) {
-
     for (int j = (i + 1); j < size; j++) {
-
       if (compararRegistros(filas[i], filas[j])) {
         for (int l = j; l < size - 1; l++) {
           filas[l] = filas[l + 1];
         }
-        
+
         size--;
       }
     }
   }
-  printf("Se han eliminado %i filas",(nFilas - size));
-  printf("El nuevo tamaño de registros es %i\n",size);
+  printf("Se han eliminado %i filas", (nFilas - size));
+  printf("El nuevo tamaño de registros es %i\n", size);
   return size;
 }
-
-/**
- * Calcula los resultados y los buelca en un ficero binario
- * @param Elec array de filas
- * @param numero de filas
- */
-void calcularResultados(struct Elec filas[], int nfilas) {}
 
 /** Carga un fichero de texto (entradao sin  filas repetidas)en el vector de
  * registros
@@ -594,15 +598,6 @@ int cargarRegistros(struct Elec filas[], FILE *f) {
   };
 
   printf("->Se han cargado %i filas en el vector de registros\n", i);
-  /** COMPROBACION:
-  for (int j = 0; j < i; j++) {
-    printf("%i,%s,%i,%i,%i,%s,%i,%f,%f,%f,%i,%i\n", filas[j].instante,
-           filas[j].territorio, filas[j].blancos, filas[j].nulos, filas[j].subs,
-           filas[j].partido, filas[j].elegidos, filas[j].porcentaje,
-           filas[j].validos, filas[j].porcientoVotos, filas[j].hondt,
-           filas[j].totalElegidos);
-  }
-  */
   return i;
 }
 
@@ -650,8 +645,112 @@ void escribeFicheroDepurado(struct Elec filas[], int size, FILE *f) {
  * @param filas a leer
  * @param lienas totales
  */
-void calcularResultado(struct Elec filas[], int lineas){
-  for(int i = 0; i < lineas; i++) {
-    
+void calcularResultado(struct Elec filas[], int lineas) {
+  struct Ganador ganadores[NREGIONES];
+
+  //Matriz de votos totales
+  int matrizres[NREGIONES][NPARTIDOS];
+  //Matriz de votos estimados
+  int matrizdif[NREGIONES][NPARTIDOS];
+
+  // Se asigna un territorio, aunque no es del todo necesario
+  for (int r = 0; r < NREGIONES; r++) {
+    ganadores[r].territorio = r;
+  }
+
+  // Inicializacion de la matriz
+  for (int x = 0; x < NREGIONES; x++) {
+    for (int y = 0; y < NPARTIDOS; y++) {
+      matrizres[x][y] = 0;
+      matrizdif[x][y] = 0;
+    }
+  }
+
+  for (int i = 0; i < lineas; i++) {
+    // Buscar el territorio en el array de territorios
+    for (int t = 0; t < NREGIONES; t++) {
+      if (strcmp(REGIONES[t], filas[i].territorio) == 0) {
+        // Se busca el indice del partido
+        for (int p = 0; p < NPARTIDOS; p++) {
+          if (strcmp(PARTIDOS[p], filas[i].partido) == 0) {
+            // Se incrementa la posicion de ese partido en el territorio
+            matrizres[t][p] += filas[i].totalElegidos;
+            matrizdif[t][p] += filas[i].totalElegidos - filas[i].hondt;
+            p = NPARTIDOS;
+          }
+        }
+        t = NREGIONES;
+      }
+    }
+  }
+
+  // Obtener ganador y cargarlo en un registro
+  for (int r = 0; r < NREGIONES; r++ ) {
+    int maximo = 0, partido = 0, suma = 0;
+    int mindif = 0, maxdif = 0, partidomin = 0, partidomax = 0;
+
+    for (int p = 0; p < NPARTIDOS; p++) {
+      //Buscar el maximo
+      if (matrizres[r][p] > maximo) {
+        maximo = matrizres[r][p];
+        partido = p;
+      }
+
+      //El que menos ha crecido
+      if (matrizdif[r][p] < mindif) {
+        mindif = matrizdif[r][p];
+        partidomin = p;
+      }
+
+      //El que mas a cercido
+      if (matrizdif[r][p] > maxdif) {
+        maxdif = matrizdif[r][p];
+        partidomax = p;
+      }
+    }
+    ganadores[r].partido = partido;
+    ganadores[r].votos = maximo;
+    ganadores[r].votosBajados = mindif;
+    ganadores[r].votosSubidos = maxdif;
+    ganadores[r].masHaBajado = partidomin;
+    ganadores[r].masHaSubido = partidomax;
+
+  }
+
+  // mostrarMatriz(matrizres);
+  printf("\n");
+  //Mostrar por pantalla
+  for (int i = 0; i< NREGIONES; i++) {
+    printf("Territorio: %s\n", REGIONES[i]);
+    printf("Ganador: %s con %i votos \n", PARTIDOS[ganadores[i].partido], ganadores[i].votos);
+    printf("Partido que mas sube: %s con %i votos\n",
+           PARTIDOS[ganadores[i].masHaSubido], ganadores[i].votosSubidos);
+    printf("Partido que mas baja: %s con %i votos\n\n",
+           PARTIDOS[ganadores[i].masHaBajado], ganadores[i].votosBajados);
+  }
+
+  //Introducirn en un archivo binario  cada struct
+  FILE * f = fopen("Binario","wb");
+  for (int i = 0; i < NREGIONES; i++) {
+    fwrite(&ganadores[i],sizeof(ganadores[i]),1,f);
+  } 
+  fclose(f);
+
+  //Se van a introducir siempre tantos registros como regiones
+  printf("Se han introducido en el archivo binario %i registros\n",NREGIONES);
+}
+
+/**
+ * Muestra una matriz por pantalla
+ * @param matriz a leer
+ * @param tamaño de la dimension x
+ * @param tamaño de la dimansion y
+ */
+void mostrarMatriz(int matriz[NREGIONES][NPARTIDOS]) {
+  for (int i = 0; i < NREGIONES; i++) {
+    for (int j = 0; j < NPARTIDOS; j++) {
+      printf("%i ", matriz[i][j]);
+    }
+    printf("\n");
   }
 }
