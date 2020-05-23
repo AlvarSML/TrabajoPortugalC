@@ -9,8 +9,8 @@
 |  Devuelve 0.                                  |
 |Organización: Universidad de Burgos            |
 |Autor:   Alvar San Martin                      |
-|Fecha:   11/04/2020                            |
-|Versión: v0.7                                  |
+|Fecha:   17/05/2020                            |
+|Versión: v0.17 (Final)                         |
 |Repositorio:                                   |
 |  https://github.com/alvarsnow/TrabajoPortugalC|
 +----------------------------------------------*/
